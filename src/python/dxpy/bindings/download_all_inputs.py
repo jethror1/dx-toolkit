@@ -112,7 +112,7 @@ def _get_num_parallel_threads(num_cores, mem_available_mb):
     TODO: this seems redundant now since we're opening one download per
         core in parallel and all instances have > 1.2GB per core
     '''
-    return min(max_threads, num_cores, max(int(mem_available_mb/1200), 1))
+    return min(num_cores, max(int(mem_available_mb/1200), 1))
 
 
 def download_all_inputs(exclude=None, parallel=False, max_threads=8):
