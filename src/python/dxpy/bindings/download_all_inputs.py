@@ -105,9 +105,12 @@ def _gen_helper_dict(filtered_inputs):
     return flattened_dict
 
 
-def _get_num_parallel_threads(max_threads, num_cores, mem_available_mb):
+def _get_num_parallel_threads(num_cores, mem_available_mb):
     '''
     Ensure at least ~1.2 GB memory per thread, see PTFM-18767
+
+    TODO: this seems redundant now since we're opening one download per
+        core in parallel and all instances have > 1.2GB per core
     '''
     return min(max_threads, num_cores, max(int(mem_available_mb/1200), 1))
 
@@ -195,7 +198,7 @@ def download_all_inputs(exclude=None, parallel=False, max_threads=8):
     if parallel:
         total_mem = psutil.virtual_memory().total >> 20  # Total RAM in MB
         num_cores = multiprocessing.cpu_count()
-        max_num_parallel_downloads = _get_num_parallel_threads(max_threads, num_cores, total_mem)
+        max_num_parallel_downloads = _get_num_parallel_threads(num_cores, total_mem)
         sys.stderr.write("Downloading files using {} threads".format(max_num_parallel_downloads))
         _parallel_file_download(to_download, idir, max_num_parallel_downloads)
     else:
