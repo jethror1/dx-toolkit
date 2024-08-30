@@ -16,6 +16,7 @@
 
 from __future__ import print_function
 import concurrent.futures
+from functools import partial
 import os
 import sys
 import multiprocessing
@@ -58,19 +59,33 @@ def _sequential_file_download(to_download, idir):
 # Download files in parallel
 #   to_download: list of tuples describing files to download
 def _parallel_file_download(to_download, idir, max_num_parallel_downloads):
+    # try:
+    #     with concurrent.futures.ProcessPoolExecutor(
+    #             max_workers=max_num_parallel_downloads) as executor:
+    #         future_files = {executor.submit(_download_one_file, file_rec, idir): file_rec
+    #                         for file_rec in to_download}
+    #         for future in concurrent.futures.as_completed(future_files):
+    #             file_rec = future_files[future]
+    #             try:
+    #                 future.result()
+    #             except Exception:
+    #                 sys.stderr.write('%r -> %s generated an exception' %
+    #                                  (file_rec['src_file_id'], file_rec['trg_fname']))
+    #                 raise
     try:
         with concurrent.futures.ProcessPoolExecutor(
-                max_workers=max_num_parallel_downloads) as executor:
-            future_files = {executor.submit(_download_one_file, file_rec, idir): file_rec
-                            for file_rec in to_download}
-            for future in concurrent.futures.as_completed(future_files):
-                file_rec = future_files[future]
-                try:
-                    future.result()
-                except Exception:
-                    sys.stderr.write('%r -> %s generated an exception' %
-                                     (file_rec['src_file_id'], file_rec['trg_fname']))
-                    raise
+            max_workers=max_num_parallel_downloads) as pool:
+            # map threshold arg to function since same is passed to all, then
+            # use imap to pass each df to worker to generate stats
+            download_with_dir = partial(_download_one_file, idir=idir)
+            pool.imap_unordered(download_with_dir, to_download)
+
+    except Exception as err:
+        # error downloading a file
+        pool.close()
+        pool.terminate()
+        raise err
+
     except KeyboardInterrupt:
         # Call os._exit() in case of KeyboardInterrupt. Otherwise, the atexit registered handler in
         # concurrent.futures.thread will run, and issue blocking join() on all worker threads,
