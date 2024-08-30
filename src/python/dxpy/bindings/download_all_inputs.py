@@ -59,7 +59,7 @@ def _sequential_file_download(to_download, idir):
 #   to_download: list of tuples describing files to download
 def _parallel_file_download(to_download, idir, max_num_parallel_downloads):
     try:
-        with concurrent.futures.ThreadPoolExecutor(
+        with concurrent.futures.ProcessPoolExecutor(
                 max_workers=max_num_parallel_downloads) as executor:
             future_files = {executor.submit(_download_one_file, file_rec, idir): file_rec
                             for file_rec in to_download}
