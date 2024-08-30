@@ -157,7 +157,7 @@ def download_all_inputs(exclude=None, parallel=False, max_threads=8):
 
     This allows using shell globbing (FOO/*/*.vcf) to get all the files in the input
     order and prevents issues with files which have the same filename.'''
-
+    print('downloading')
     # Input directory, where all inputs are downloaded
     idir = file_load_utils.get_input_dir()
     try:
@@ -199,7 +199,7 @@ def download_all_inputs(exclude=None, parallel=False, max_threads=8):
         total_mem = psutil.virtual_memory().total >> 20  # Total RAM in MB
         num_cores = multiprocessing.cpu_count()
         max_num_parallel_downloads = _get_num_parallel_threads(num_cores, total_mem)
-        sys.stderr.write("Downloading files using {} threads".format(max_num_parallel_downloads))
+        sys.stderr.write("Downloading files using {} cores".format(max_num_parallel_downloads))
         _parallel_file_download(to_download, idir, max_num_parallel_downloads)
     else:
         _sequential_file_download(to_download, idir)
