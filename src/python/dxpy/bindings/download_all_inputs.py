@@ -72,9 +72,11 @@ def _parallel_file_download(to_download, idir, max_num_parallel_downloads):
     #                 sys.stderr.write('%r -> %s generated an exception' %
     #                                  (file_rec['src_file_id'], file_rec['trg_fname']))
     #                 raise
+    print(f'WORKERS: {max_num_parallel_downloads}')
     try:
         with ProcessPoolExecutor(
             max_workers=max_num_parallel_downloads) as executor:
+            print('downloading')
             # set download dir to target function, then submit each file
             # to download to the ProcessPool and wait on all to complete
             download_with_dir = partial(_download_one_file, idir=idir)
@@ -82,12 +84,14 @@ def _parallel_file_download(to_download, idir, max_num_parallel_downloads):
                 executor.submit(download_with_dir, file) for file in to_download
             ]
 
+            print(futures)
+
             # wait for all tasks to complete and close the pool
             executor.shutdown(wait=True, cancel_futures=False)
 
     except Exception as err:
         # error downloading a file
-        executor.shutdown(wait=False, cancel_futures=True)
+        print(':ohno:')
         raise err
 
     except KeyboardInterrupt:
