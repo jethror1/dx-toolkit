@@ -15,7 +15,7 @@
 #   under the License.
 
 from __future__ import print_function
-import concurrent.futures
+from concurrent.futures import ProcessPoolExecutor, wait
 from functools import partial
 import os
 import sys
@@ -73,17 +73,21 @@ def _parallel_file_download(to_download, idir, max_num_parallel_downloads):
     #                                  (file_rec['src_file_id'], file_rec['trg_fname']))
     #                 raise
     try:
-        with concurrent.futures.ProcessPoolExecutor(
-            max_workers=max_num_parallel_downloads) as pool:
-            # map threshold arg to function since same is passed to all, then
-            # use imap to pass each df to worker to generate stats
+        with ProcessPoolExecutor(
+            max_workers=max_num_parallel_downloads) as executor:
+            # set download dir to target function, then submit each file
+            # to download to the ProcessPool and wait on all to complete
             download_with_dir = partial(_download_one_file, idir=idir)
-            pool.imap_unordered(download_with_dir, to_download)
+            futures = [
+                executor.submit(download_with_dir, file) for file in to_download
+            ]
+
+            # wait for all tasks to complete and close the pool
+            executor.shutdown(wait=True, cancel_futures=False)
 
     except Exception as err:
         # error downloading a file
-        pool.close()
-        pool.terminate()
+        executor.shutdown(wait=False, cancel_futures=True)
         raise err
 
     except KeyboardInterrupt:
